@@ -1,0 +1,22 @@
+<section class="mapbox">
+    <div class="row">
+        <h2>Grain Ops - Location Tracking & ETA System</h2>
+        <div id="map"></div>
+    </div>
+</section>
+
+<section class="controls">
+    <div class="row">
+        <button onclick="location.reload();" type="button" class="btn btn-primary btn-lg" id="reset-orders">Generate Multiple Order Delivery</button>
+    </div>
+    
+    <br>
+
+    <div class="row">
+        <div class="col-sm-9">
+            <h4>Current Delivery List: </h4>
+            <br>
+            <%= render partial: "orders", locals: { locations: @locations }%>
+        </div>
+    </div>  
+</section>

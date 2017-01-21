@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Grain Opstracker</title>
+    <%= csrf_meta_tags %>
+
+    <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+    <%= javascript_include_tag 'application', 'data-turbolinks-track': 'reload' %>
+  </head>
+
+  <body>
+
+    <div class="container">
+        <%= yield %>
+    </div>
+
+    <script>
+      function initMap() {
+        var active_order = ($('button.enabled').closest('tr').attr('id')).split('_')[1];
+        var locations = <%= raw @locations.to_json %>;
+        var center = {lat: 1.2807172, lng: 103.8488758};
+        var first = {lat: locations[0].latitude, lng: locations[0].longitude};
+        var current_loc;
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 16,
+          center: center
+        });
+
+        var icons = {
+          start: {
+            icon: '<%= asset_path "start-marker-icon.png" %>'
+          },
+          end: {
+            icon: '<%= asset_path "end-marker-icon.png" %>'
+          },
+          mid: {
+            icon: '<%= asset_path "start-marker-icon.png" %>'
+          }
+        };
+
+        map.addListener('click', function(e) {
+          current_loc = e.latLng;
+          if ($('button.enabled').hasClass('active')) {
+            updateETA(current_loc, active_order);
+          }
+          placeMarkerAndPanTo({type: 'start', position: e.latLng}, map, active_order);
+        });
+
+        function addMarker(feature) {
+          var marker = new google.maps.Marker({
+            position: feature.position,
+            icon: icons[feature.type].icon,
+            map: map
+          });
+        }
+
+        function placeMarkerAndPanTo(feature, map, active_order) {
+          handleMapClicks(feature.position, active_order).then(function(response){
+            addMarker(feature);
+            map.panTo(feature.position);
+          });
+        }
+
+        addMarker({type: 'end', position: first});
+
+        function handleMapClicks(location, active_order) {
+          return new Promise(function(resolve, reject) {
+            fetch('/tracker/updatecurrentloc', {
+              method: 'post',
+              mode: 'cors', 
+              headers: new Headers({
+                'Content-Type': 'application/json'
+              }),
+              body: JSON.stringify({
+                order_id:    active_order,
+                current_loc: location
+              })
+            }).then(function(){
+              resolve(console.log('Location updated in backend'));
+            }).catch(function(){
+              reject(new Error("Couldn't update current location"));
+            });
+          });
+        }
+
+        $('button.enabled').on('click', function(){
+          updateETA(current_loc, active_order);
+          $(this).text('Finish').addClass('active');
+        });
+
+        function updateETA(from, active_order) {
+          var order_loc = getOrderLocation(active_order);
+          var service = new google.maps.DistanceMatrixService();
+
+          service.getDistanceMatrix(
+          {
+            origins: [new google.maps.LatLng(from.lat(), from.lng())],
+            destinations: [new google.maps.LatLng(order_loc.lat, order_loc.lng)],
+            travelMode: 'DRIVING'
+          }, callback);
+
+          function callback(response, status) {
+            if (status == 'OK') {
+              distance = response.rows[0].elements[0].distance.text
+              eta = response.rows[0].elements[0].duration.text
+
+              $('#order_' + active_order + ' > th.eta').text(eta);
+            }
+          }
+        }
+
+        function getOrderLocation(active_order) {
+          var order_loc = {lat: '', lng: ''};
+          for (var i = 0; i < locations.length; i++){
+            if (locations[i].id == active_order){
+               order_loc.lat = locations[i].latitude;
+               order_loc.lng = locations[i].longitude;
+            }
+          }
+          return order_loc;
+        }
+      }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=<%= GOOGLE_MAPS_JS_API_KEY %>&callback=initMap"></script>
+
+  </body>
+</html>

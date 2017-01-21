@@ -1,0 +1,22 @@
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Address</th>
+            <th>ETA</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+<tbody>
+    <% first = 1 %>
+    <% locations.each do |location| %>
+        <tr class = 'order-rows' id="order_<%= location[:id] %>">
+            <th scope="row"><%= location[:id] %></th>
+            <th><%= location[:address] %></th>
+            <th class="eta"> - </th>
+            <th><button class="btn btn-primary btn-block <%= first != 1 ? 'disabled' : 'enabled' %>"><%= first == 1 ? 'Start' : 'Pending Previous' %></button></th>
+        </tr>
+        <% first+= 1 %>
+    <% end %>
+  </tbody>
+</table>

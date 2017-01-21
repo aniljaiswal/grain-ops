@@ -1,0 +1,16 @@
+# Ansible managed: /Users/anil/Code/grain/opstracker/railsbox/ansible/roles/postgresql/templates/database.yml.j2 modified on 2017-01-19 12:50:46 by anil on anil-macbook.local
+
+default: &default
+  adapter: postgresql
+  pool: 5
+
+development:
+  <<: *default
+  database: rails
+
+  username: vagrant
+  password: vagrant
+
+test:
+  <<: *default
+  database: rails_test
