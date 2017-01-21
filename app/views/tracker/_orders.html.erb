@@ -14,7 +14,7 @@
             <th scope="row"><%= location[:id] %></th>
             <th><%= location[:address] %></th>
             <th class="eta"> - </th>
-            <th><button class="btn btn-primary btn-block <%= first != 1 ? 'disabled' : 'enabled' %>"><%= first == 1 ? 'Start' : 'Pending Previous' %></button></th>
+            <th><button class="on_delivery btn btn-block <%= first != 1 ? 'disabled btn-secondary' : 'btn-primary enabled' %>"><%= first == 1 ? 'Start' : 'Pending Previous' %></button></th>
         </tr>
         <% first+= 1 %>
     <% end %>

@@ -20,11 +20,15 @@
 
     <script>
       function initMap() {
+        var order_states = {'on_delivery': 'on_delivery', 'active_delivery': 'active_delivery', 'finished_delivery': 'finished_delivery'};
         var active_order = ($('button.enabled').closest('tr').attr('id')).split('_')[1];
+        var next_order;
         var locations = <%= raw @locations.to_json %>;
         var center = {lat: 1.2807172, lng: 103.8488758};
         var first = {lat: locations[0].latitude, lng: locations[0].longitude};
         var current_loc;
+        var markers = [];
+        var path_clicks;
         var map = new google.maps.Map(document.getElementById('map'), {
           zoom: 16,
           center: center
@@ -38,13 +42,17 @@
             icon: '<%= asset_path "end-marker-icon.png" %>'
           },
           mid: {
-            icon: '<%= asset_path "start-marker-icon.png" %>'
+            icon: '<%= asset_path "mid-marker-icon.png" %>'
           }
         };
 
+        function getNextOrder(active_order) {
+          return $('#order_' + active_order).next('tr').attr('id').split('_')[1];
+        }
+
         map.addListener('click', function(e) {
           current_loc = e.latLng;
-          if ($('button.enabled').hasClass('active')) {
+          if ($('button.enabled').hasClass('active_delivery')) {
             updateETA(current_loc, active_order);
           }
           placeMarkerAndPanTo({type: 'start', position: e.latLng}, map, active_order);
@@ -56,12 +64,23 @@
             icon: icons[feature.type].icon,
             map: map
           });
+          markers.push(marker);
         }
+
+        var first_click = false;
 
         function placeMarkerAndPanTo(feature, map, active_order) {
           handleMapClicks(feature.position, active_order).then(function(response){
-            addMarker(feature);
-            map.panTo(feature.position);
+            if (!first_click) {
+              addMarker(feature);
+              map.panTo(feature.position);
+              first_click = true;
+            }
+            else
+            {
+              addMarker({type: 'mid', position: feature.position});
+              map.panTo(feature.position);
+            }
           });
         }
 
@@ -88,9 +107,54 @@
         }
 
         $('button.enabled').on('click', function(){
-          updateETA(current_loc, active_order);
-          $(this).text('Finish').addClass('active');
+          var thisButton = this;
+          buttonClickHandler();
         });
+
+        function buttonClickHandler(button) {
+          updateETA(current_loc, active_order);
+          if ($('button.enabled').hasClass('on_delivery')) {
+            updateStatusforOrder(active_order, order_states.active_delivery).then(function(response){
+              $('button.enabled').text('Finish').removeClass('on_delivery').addClass('active_delivery');  
+            });
+          }
+          else {
+            $('button.enabled').off('click');
+            updateStatusforOrder(active_order, order_states.finished_delivery).then(function(response){
+              $('#order_' + active_order + ' > th.eta').text('-');
+              $('button.enabled').text('Done').removeClass('active_delivery').addClass('finished_delivery').removeClass('enabled btn-primary').addClass('disabled btn-secondary');
+              deleteMarkers();
+              active_order = getNextOrder(active_order);
+              startNextOrderDelivery(active_order);
+            });
+          }
+        }
+
+        function startNextOrderDelivery(active_order) {
+          addMarker({type: 'start', position: current_loc});
+          addMarker({type: 'end', position: getOrderLocation(active_order)});
+          $('#order_' + active_order + ' > th:nth-child(4) > button').click(buttonClickHandler).removeClass('btn-secondary disabled').addClass('btn-primary enabled').text('Start');
+        }
+
+        function updateStatusforOrder(active_order, order_state) {
+          return new Promise(function(resolve, reject) {
+            fetch('/tracker/updatestatus', {
+              method: 'post',
+              mode: 'cors', 
+              headers: new Headers({
+                'Content-Type': 'application/json'
+              }),
+              body: JSON.stringify({
+                order_id:    active_order,
+                order_state: order_state
+              })
+            }).then(function(){
+              resolve(console.log('Status updated in backend'));
+            }).catch(function(){
+              reject(new Error("Couldn't update current status"));
+            });
+          });
+        }
 
         function updateETA(from, active_order) {
           var order_loc = getOrderLocation(active_order);
@@ -123,6 +187,56 @@
           }
           return order_loc;
         }
+
+        function setMapOnAll(map) {
+          for (var i = 0; i < markers.length; i++) {
+            markers[i].setMap(map);
+          }
+        }
+
+        function clearMarkers() {
+          setMapOnAll(null);
+        }
+
+        function deleteMarkers() {
+          clearMarkers();
+          markers = [];
+        }
+
+        function getallOrderIds() {
+          var ids = [];
+          for (var i = 0; i < locations.length; i++) {
+            ids.push(locations[i].id)
+          }
+          return ids;
+        }
+
+        $('#polygraph').on('click', function(){
+          fetch('/tracker/pathdata', {
+            method: 'post',
+            mode: 'cors', 
+            headers: new Headers({
+              'Content-Type': 'application/json'
+            }),
+            body: JSON.stringify({
+              orders: getallOrderIds()
+            })
+          }).then(function(response){
+            return response.json();
+          }).then(function(result){
+            console.log(result);
+            var travelPath = new google.maps.Polyline({
+              path: result,
+              geodesic: true,
+              strokeColor: '#FF0000',
+              strokeOpacity: 1.0,
+              strokeWeight: 2
+            });
+            travelPath.setMap(map);
+          }).catch(function(err){
+            console.log("Can't draw the path");
+          });
+        }); 
       }
     </script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=<%= GOOGLE_MAPS_JS_API_KEY %>&callback=initMap"></script>

@@ -18,5 +18,14 @@
             <br>
             <%= render partial: "orders", locals: { locations: @locations }%>
         </div>
-    </div>  
+        <div class="col-sm-3">
+            <button class="btn btn-primary btn-lg btn-block" id="polygraph">Plot Polyline Graph</button>
+            <p>Map Legends:</p>
+            <ul>
+                <li><img src="<%= asset_path "start-marker-icon.png" %>" alt="Start Marker"> Start Marker</li>
+                <li><img src="<%= asset_path "mid-marker-icon.png" %>" alt="Mid Marker">Mid Marker</li>
+                <li><img src="<%= asset_path "end-marker-icon.png" %>" alt="End Marker">End Marker</li>
+            </ul>
+        </div>
+    </div>
 </section>

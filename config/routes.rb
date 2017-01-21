@@ -6,6 +6,10 @@ Rails.application.routes.draw do
 
   post 'tracker/updatecurrentloc'
 
+  post 'tracker/updatestatus'
+
+  post  'tracker/pathdata'
+
   get  'tracker/order/:id', to: 'tracker#order'
   
 end
