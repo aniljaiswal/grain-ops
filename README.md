@@ -17,8 +17,10 @@ Things you may want to cover:
     3. Insert your own Google Maps API key in development.rb
 
 * Database creation
+    1. Run `rails db:migrate`
 
 * Database initialization
+    1. Run `rails db:seed` to initialize the database with 5 addresses given in the problem
 
 * How to run the test suite
 

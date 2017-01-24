@@ -5,3 +5,10 @@
 #
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
+
+# Seed the Initial addresses into the DB
+addresses = ['1 Raffles Quay, Singapore', '1 Telok Ayer, Singapore', '10 Anson Road, Singapore', '8 Marina Boulevard, Singapore', '6 Battery Road, Singapore']
+
+addresses.each do |address|
+    Order.find_or_create_by(address: address)
+end
